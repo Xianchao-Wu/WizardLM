@@ -43,6 +43,7 @@ def evaluate(
         pad_token_id=tokenizer.pad_token_id,
         **kwargs,
     )
+    import ipdb; ipdb.set_trace()
     with torch.no_grad():
         generation_output = model.generate(
             input_ids=input_ids,

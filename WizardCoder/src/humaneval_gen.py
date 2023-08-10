@@ -2,6 +2,7 @@ import argparse
 import pprint
 import sys
 import os
+sys.path.append('/workspace/asr/WizardLM/WizardCoder/human-eval')
 import re
 from tqdm import tqdm
 import torch
@@ -51,20 +52,23 @@ def get_model(
     assert base_model, (
         "Please specify a --base_model, e.g. --base_model='bigcode/starcoder'"
     )
-
-    tokenizer = AutoTokenizer.from_pretrained(base_model)
+    cache_dir = "/workspace/asr/Llama-X/src/checkpoints_wcode"
+    tokenizer = AutoTokenizer.from_pretrained(base_model, cache_dir=cache_dir)
+    import ipdb; ipdb.set_trace()
     if device == "cuda":
         model = AutoModelForCausalLM.from_pretrained(
             base_model,
             load_in_8bit=load_8bit,
             torch_dtype=torch.float16,
             device_map="auto",
+            cache_dir=cache_dir,
         )
     elif device == "mps":
         model = AutoModelForCausalLM.from_pretrained(
             base_model,
             device_map={"": device},
             torch_dtype=torch.float16,
+            cache_dir=cache_dir,
         )
     model.config.pad_token_id = tokenizer.pad_token_id
 
@@ -97,7 +101,7 @@ def main():
 
     argsdict = vars(args)
     print(pprint.pformat(argsdict))
-
+    import ipdb; ipdb.set_trace()
     STOP_SEQS = ['\nclass', '\ndef', '\n#', '\nif', '\nprint']
 
     problems = read_problems()
@@ -121,7 +125,7 @@ def main():
     print(f"Loaded {args.model}.")
     for i in tqdm(range(num_samples), ncols=0, total=num_samples):
         output_file = args.output_path + '/{}.jsonl'.format(args.start_index + i)
-
+        # output_file = 'preds/T0.0_N1_WizardCoder_Greedy_Decode/0.jsonl'
         if os.path.exists(output_file) and not args.overwrite:
             print(f'Skip {output_file} as it already exists')
             continue
@@ -141,7 +145,7 @@ def main():
             loops = 1
 
         for _ in tqdm(range(loops), total=loops, leave=False, ncols=0):
-
+            import ipdb; ipdb.set_trace()
             with torch.no_grad():
                 gen_tokens = model.generate(
                     **encoding,
