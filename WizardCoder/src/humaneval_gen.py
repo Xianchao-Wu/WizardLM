@@ -141,7 +141,7 @@ def main():
             loops = 1
 
         for _ in tqdm(range(loops), total=loops, leave=False, ncols=0):
-
+            import ipdb; ipdb.set_trace()
             with torch.no_grad():
                 gen_tokens = model.generate(
                     **encoding,
