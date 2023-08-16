@@ -53,7 +53,7 @@ Create a Python script for this problem:
     return INSTRUCTION # e.g., 'Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a Python script for this problem:\n\nWrite a python function to remove first and last occurrence of a given character from the string.\nTest examples:\nassert remove_Occ("hello","l") == "heo"\nassert remove_Occ("abcda","a") == "bcd"\nassert remove_Occ("PHP","P") == "H"\n\n### Response:'
 
 def get_model(
-    load_8bit: bool = False,
+    load_8bit: bool = False, # TODO for GPU memory saving
     base_model: str = "bigcode/starcoder",
 ):
     assert base_model, (

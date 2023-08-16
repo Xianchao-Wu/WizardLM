@@ -9,9 +9,9 @@
 #model="/path/to/your/model"
 model="/workspace/asr/WizardLM/WizardCoder/models--WizardLM--WizardCoder-15B-V1.0/snapshots/926ca1b215c4631bc5f8c3e47173381452c23e5c"
 temp=0.2 # temperature, TODO reset this 温度
-max_len=2048
-pred_num=200
-num_seqs_per_iter=2
+max_len=1024 #2048
+pred_num=1 #200 TODO
+num_seqs_per_iter=1 #2
 
 output_path=preds/MBPP_T${temp}_N${pred_num}
 mbpp_path=data/mbpp.test.jsonl # we provide this file in data/mbpp.test.zip
