@@ -6,8 +6,7 @@
 #########################################################################
 #!/bin/bash
 
-bmodel="/workspace/asr/WizardLM/WizardCoder/models--WizardLM--WizardCoder-15B-V1.0/snapshots/926ca1b215c4
-631bc5f8c3e47173381452c23e5c"
+bmodel="/workspace/asr/WizardLM/WizardCoder/models--WizardLM--WizardCoder-15B-V1.0/snapshots/926ca1b215c4631bc5f8c3e47173381452c23e5c"
 inpath="./data/in.jsonl"
 outpath="./data/out.jsonl"
 

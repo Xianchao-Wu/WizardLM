@@ -2,6 +2,7 @@ import jsonlines
 import argparse
 import pprint
 import sys
+sys.path.append('/workspace/asr/WizardLM/WizardCoder/human-eval')
 import os
 import re
 from tqdm import tqdm
