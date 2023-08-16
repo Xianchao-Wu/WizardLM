@@ -12,4 +12,5 @@ jsonfn="/workspace/asr/WizardLM/WizardCoder/preds/MBPP_T0.2_N2.jsonl"
 python -m ipdb main.py --tasks mbpp \
 	--allow_code_execution \
 	--load_generations_path $jsonfn \
+    --n_samples 2 \
 	--model incoder-temperature-08
