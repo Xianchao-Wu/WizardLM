@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append('/workspace/asr/WizardLM/WizardCoder/human-eval')
+
 from human_eval.data import read_problems, write_jsonl, stream_jsonl
 import glob 
 from tqdm import tqdm

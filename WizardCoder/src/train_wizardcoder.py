@@ -26,6 +26,7 @@ from transformers import Trainer
 from datasets import load_dataset
 import utils
 
+import ipdb; ipdb.set_trace()
 IGNORE_INDEX = -100
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "<|endoftext|>"
@@ -43,7 +44,7 @@ PROMPT_DICT = {
         "### Instruction:\n{instruction}\n\n### Response:"
     ),
 }
-
+# {'prompt_input': 'Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:', 'prompt_no_input': 'Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Response:'} NOTE
 
 @dataclass
 class ModelArguments:
@@ -96,9 +97,9 @@ def smart_tokenizer_and_embedding_resize(
         input_embeddings[-num_new_tokens:] = input_embeddings_avg
         output_embeddings[-num_new_tokens:] = output_embeddings_avg
 
-
 def _tokenize_fn(strings: Sequence[str], tokenizer: transformers.PreTrainedTokenizer) -> Dict:
     """Tokenize a list of strings."""
+    #import ipdb; ipdb.set_trace()
     tokenized_list = [
         tokenizer(
             text,
@@ -112,12 +113,12 @@ def _tokenize_fn(strings: Sequence[str], tokenizer: transformers.PreTrainedToken
     input_ids = labels = [tokenized.input_ids[0] for tokenized in tokenized_list]
     input_ids_lens = labels_lens = [
         tokenized.input_ids.ne(tokenizer.pad_token_id).sum().item() for tokenized in tokenized_list
-    ]
+    ] # tokenizer.pad_token_id = 49152
     return dict(
-        input_ids=input_ids,
-        labels=labels,
-        input_ids_lens=input_ids_lens,
-        labels_lens=labels_lens,
+        input_ids=input_ids, # [tensor([27400,   438,   600, 12404,   688, 18872,   312,  2899,    32,  5950, ... ])]
+        labels=labels, # [tensor([27400,   438,   600, 12404,   688, 18872,   312,  2899,    32,  5950, ...])], 
+        input_ids_lens=input_ids_lens, # [68]
+        labels_lens=labels_lens, # [68] NOTE
     )
 
 
@@ -127,15 +128,16 @@ def preprocess(
     tokenizer: transformers.PreTrainedTokenizer,
 ) -> Dict:
     """Preprocess the data by tokenizing."""
-    examples = [s + t for s, t in zip(sources, targets)]
+    #import ipdb; ipdb.set_trace()
+    examples = [s + t for s, t in zip(sources, targets)] # ['Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate an array of length 5 which contains all even numbers between 1 and 10.\n\n### Response:arr = [2, 4, 6, 8, 10]<|endoftext|>']
     examples_tokenized, sources_tokenized = [_tokenize_fn(strings, tokenizer) for strings in (examples, sources)]
     input_ids = examples_tokenized["input_ids"]
     labels = copy.deepcopy(input_ids)
     for label, source_len in zip(labels, sources_tokenized["input_ids_lens"]):
-        label[:source_len] = IGNORE_INDEX
-    return dict(input_ids=input_ids, labels=labels)
-
-
+        label[:source_len] = IGNORE_INDEX # label[:49] = -100, 前面的49个tokens是pre-given condition，不是参与到label (target)中去. NOTE 这里是直接修改了label，连动着，labels也被修改了 NOTE 这个非常重要.
+    return dict(input_ids=input_ids, labels=labels) #  
+    # input_ids = [tensor([27400,   438,   600, 12404,   688, 18872,   312,  2899,    32,  5950, ... ])]
+    # labels = [tensor([-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, ...         -100,  846,  280,  428,   36,   30,  225,   38,   30,  225,   40,   30,          225,   42,   30,  225,   35,   34,   79,    0])], 一共是49个-100，省下的是真正的labels，一共长度是：68 - 49 = 19 个tokens
 @dataclass
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning."""
@@ -156,70 +158,75 @@ class DataCollatorForSupervisedDataset(object):
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
         )
 
-def train_tokenize_function(examples, tokenizer):
+def train_tokenize_function(examples, tokenizer): # examples = {'input': [''], 'output': ['arr = [2, 4, 6, 8, 10]'], 'instruction': ['Create an array of length 5 which contains all even numbers between 1 and 10.']}; 
+    #import ipdb; ipdb.set_trace()
     prompt_input, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT["prompt_no_input"]
     if 'input' in examples:
         sources = [
             prompt_input.format_map(dict(instruction=instruction, input=input)) if input != "" \
             else prompt_no_input.format_map(dict(instruction=instruction)) \
             for instruction, input in zip(examples['instruction'], examples['input']) 
-        ]
+        ] # sources = ['Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate an array of length 5 which contains all even numbers between 1 and 10.\n\n### Response:']
     else:
         sources = [
             prompt_no_input.format_map(dict(instruction=instruction)) \
             for instruction in examples['instruction']
-        ]
-    targets = [f"{output}{tokenizer.eos_token}" for output in examples['output']]
+        ] 
+    targets = [f"{output}{tokenizer.eos_token}" for output in examples['output']] # ['arr = [2, 4, 6, 8, 10]<|endoftext|>']
     data_dict = preprocess(sources, targets, tokenizer)
-    return data_dict
-
+    return data_dict # {'input_ids': [tensor], 'labels': [tensor]}
 
 def train():
+    import ipdb; ipdb.set_trace()
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-        
+    #cache_dir="/workspace/asr/WizardLM/WizardCoder"    
+    import ipdb; ipdb.set_trace()
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=training_args.cache_dir,
+        use_auth_token=True,
     )
-
+    import ipdb; ipdb.set_trace()
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=training_args.cache_dir,
-        model_max_length=training_args.model_max_length,
+        model_max_length=training_args.model_max_length, # 2048
         padding_side="right",
         use_fast=True,
-    )
+        use_auth_token=True,
+    ) # GPT2TokenizerFast(name_or_path='bigcode/starcoder', vocab_size=49152, model_max_length=2048, is_fast=True, padding_side='right', truncation_side='right', special_tokens={'bos_token': '<|endoftext|>', 'eos_token': '<|endoftext|>', 'unk_token': '<|endoftext|>', 'additional_special_tokens': ['<|endoftext|>', '<fim_prefix>', '<fim_middle>', '<fim_suffix>', '<fim_pad>', '<filename>', '<gh_stars>', '<issue_start>', '<issue_comment>', '<issue_closed>', '<jupyter_start>', '<jupyter_text>', '<jupyter_code>', '<jupyter_output>', '<empty_output>', '<commit_before>', '<commit_msg>', '<commit_after>', '<reponame>']}, clean_up_tokenization_spaces=True)
     if tokenizer.pad_token is None:
         smart_tokenizer_and_embedding_resize(
-            special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
+            special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN), # '[PAD]' -> {'pad_token': '[PAD]'}
             tokenizer=tokenizer,
-            model=model,
+            model=model, # <class 'transformers.models.gpt_bigcode.modeling_gpt_bigcode.GPTBigCodeForCausalLM'><class 'transformers.models.gpt_bigcode.modeling_gpt_bigcode.GPTBigCodeForCausalLM'>
         )
     if "starcoder" in model_args.model_name_or_path:
         tokenizer.add_special_tokens(
             {
-                "eos_token": DEFAULT_EOS_TOKEN,
-                "bos_token": DEFAULT_BOS_TOKEN,
-                "unk_token": DEFAULT_UNK_TOKEN,
-                "pad_token": DEFAULT_PAD_TOKEN,
+                "eos_token": DEFAULT_EOS_TOKEN, # '<|endoftext|>'
+                "bos_token": DEFAULT_BOS_TOKEN, # '<|endoftext|>'
+                "unk_token": DEFAULT_UNK_TOKEN, # '<|endoftext|>'
+                "pad_token": DEFAULT_PAD_TOKEN, # '[PAD]'
             }
         )
 
-    raw_train_datasets = load_dataset('json', data_files=data_args.data_path, split="train", cache_dir=training_args.cache_dir)
-    if training_args.local_rank > 0: 
+        raw_train_datasets = load_dataset('json', data_files=data_args.data_path, split="train", cache_dir=training_args.cache_dir) # '/workspace/asr/WizardLM/WizardCoder/data/code_alpaca_20k.json'; Dataset({features: ['input', 'output', 'instruction'], num_rows: 20022}) NOTE
+    if training_args.local_rank > 0: # = 0 NOTE
         torch.distributed.barrier()
-
-    train_dataset = raw_train_datasets.map(
+    # <class 'datasets.arrow_dataset.Dataset'> = type(row_train_datasets)
+    train_dataset = raw_train_datasets.map( # NOTE 这个很赞啊！
         train_tokenize_function,
         batched=True,
-        batch_size=3000,
-        num_proc=32,
-        remove_columns=raw_train_datasets.column_names,
+        batch_size=1, # 3000
+        num_proc=1, # TODO 32
+        remove_columns=raw_train_datasets.column_names, # ['input', 'output', 'instruction']
         load_from_cache_file=True, # not args.overwrite_cache
         desc="Running tokenizer on train dataset",
         fn_kwargs={"tokenizer": tokenizer}
     )
+    import ipdb; ipdb.set_trace()
 
     if training_args.local_rank == 0:
         torch.distributed.barrier()
