@@ -236,7 +236,7 @@ def train():
         for index in random.sample(range(len(train_dataset)), 3):
             print(f"Sample {index} of the training set: {train_dataset[index]}.")
     
-    data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
+    data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer) # DataCollatorForSupervisedDataset(tokenizer=GPT2TokenizerFast(name_or_path='bigcode/starcoder', vocab_size=49152, model_max_length=2048, is_fast=True, padding_side='right', truncation_side='right', special_tokens={'bos_token': '<|endoftext|>', 'eos_token': '<|endoftext|>', 'unk_token': '<|endoftext|>', 'pad_token': '[PAD]', 'additional_special_tokens': ['<|endoftext|>', '<fim_prefix>', '<fim_middle>', '<fim_suffix>', '<fim_pad>', '<filename>', '<gh_stars>', '<issue_start>', '<issue_comment>', '<issue_closed>', '<jupyter_start>', '<jupyter_text>', '<jupyter_code>', '<jupyter_output>', '<empty_output>', '<commit_before>', '<commit_msg>', '<commit_after>', '<reponame>']}, clean_up_tokenization_spaces=True))
     data_module = dict(train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator)
 
     #Tell Trainer not to attempt DataParallel
